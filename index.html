@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0d4f5c">
-<title>Umzugskoordinator – Bestandesaufnahme</title>
+<meta name="theme-color" content="#ff5e55">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="moveme">
+<meta name="mobile-web-app-capable" content="yes">
+<title>moveme Calculator</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,11 +23,11 @@
 <style>
   /* ============= DESIGN SYSTEM ============= */
   :root {
-    --primary: #0d4f5c;
-    --primary-dark: #083742;
-    --primary-light: #1a6e7e;
-    --accent: #ff6b3d;
-    --accent-dark: #e85525;
+    --primary: #1a1a1a;
+    --primary-dark: #000000;
+    --primary-light: #333333;
+    --accent: #ff5e55;
+    --accent-dark: #e84840;
     --bg: #faf8f5;
     --surface: #ffffff;
     --surface-2: #f5f2ec;
@@ -845,8 +856,8 @@
   <!-- Top bar -->
   <header class="topbar">
     <h1>
-      <span class="logo-mark">U</span>
-      <span id="topbar-title">Bestandesaufnahme</span>
+      <span class="logo-mark">m</span>
+      <span id="topbar-title">moveme Calculator</span>
     </h1>
     <div style="display:flex; align-items:center; gap:10px;">
       <span class="offline-pill">offline</span>
@@ -1281,7 +1292,7 @@ function renderApp() {
     $footerNav.style.display = 'none';
     $progress.style.width = '0%';
     $stepCounter.textContent = '';
-    $topbarTitle.textContent = 'Umzugskoordinator';
+    $topbarTitle.textContent = 'moveme Calculator';
   } else {
     $footerNav.style.display = 'flex';
     const total = STEPS.length - 1; // exclude start
@@ -1312,7 +1323,7 @@ function renderStart() {
   $content.innerHTML = `
     <div class="start-screen">
       <div class="start-hero">
-        <h1>Umzugs&shy;koordinator</h1>
+        <h1>moveme<br>Calculator</h1>
         <p>Erfasse vor Ort die Möbelliste, berechne Kosten, generiere Offerten – auch offline.</p>
       </div>
 
@@ -1347,7 +1358,7 @@ function renderStart() {
       `}
 
       <div style="margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:11px; color:var(--text-muted);">
-        Prototyp v1.0 · Preise Richtwerte basierend auf Happy Umzug · ${getAllFurniture().length} Möbel im Katalog
+        moveme Calculator v1.0 · ${getAllFurniture().length} Möbel im Katalog
       </div>
     </div>
   `;
@@ -2138,7 +2149,7 @@ function setupSignaturePad() {
   ctx.scale(dpr, dpr);
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
-  ctx.strokeStyle = '#0d4f5c';
+  ctx.strokeStyle = '#1a1a1a';
 
   // Restore previous if exists
   if (job.signature) {
@@ -2196,16 +2207,16 @@ function generatePDF() {
   let y = 20;
 
   // Header
-  doc.setFillColor(13, 79, 92);
+  doc.setFillColor(255, 94, 85);
   doc.rect(0, 0, pageW, 30, 'F');
   doc.setTextColor(255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.text('UMZUGSOFFERTE', margin, 15);
+  doc.text('moveme CALCULATOR', margin, 15);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Erstellt am ${new Date().toLocaleDateString('de-CH')}`, margin, 23);
-  doc.text(`Offerte Nr. ${job.id.replace('job_','').slice(-8)}`, pageW - margin, 23, { align: 'right' });
+  doc.text(`Umzugsofferte vom ${new Date().toLocaleDateString('de-CH')}`, margin, 23);
+  doc.text(`Nr. ${job.id.replace('job_','').slice(-8)}`, pageW - margin, 23, { align: 'right' });
   
   y = 42;
   doc.setTextColor(0);
@@ -2297,7 +2308,7 @@ function generatePDF() {
   doc.text(chf(c.mwst), pageW - margin - 2, y, { align: 'right' });
   y += 6;
 
-  doc.setFillColor(13, 79, 92);
+  doc.setFillColor(255, 94, 85);
   doc.setTextColor(255);
   doc.rect(margin, y - 4, pageW - 2*margin, 8, 'F');
   doc.setFont('helvetica', 'bold');
@@ -2337,7 +2348,7 @@ function generatePDF() {
 
     if (y > 270) { doc.addPage(); y = 20; }
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(13, 79, 92);
+    doc.setTextColor(255, 94, 85);
     doc.text(room, margin, y);
     doc.setTextColor(0);
     y += 4;
@@ -2563,6 +2574,15 @@ renderApp();
 
 // Block accidental zoom-in on inputs (iOS)
 document.addEventListener('gesturestart', e => e.preventDefault());
+
+// Register service worker for offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('Offline-Modus aktiv'))
+      .catch(err => console.warn('Service worker registration failed:', err));
+  });
+}
 </script>
 </body>
 </html>
