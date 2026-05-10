@@ -1,0 +1,2568 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d4f5c">
+<title>Umzugskoordinator – Bestandesaufnahme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  /* ============= DESIGN SYSTEM ============= */
+  :root {
+    --primary: #0d4f5c;
+    --primary-dark: #083742;
+    --primary-light: #1a6e7e;
+    --accent: #ff6b3d;
+    --accent-dark: #e85525;
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface-2: #f5f2ec;
+    --border: #e6e0d6;
+    --border-strong: #c9bfae;
+    --text: #1a1a1a;
+    --text-muted: #6b6b6b;
+    --success: #2d7a4a;
+    --warning: #d97706;
+    --danger: #c1322a;
+    --shadow-sm: 0 1px 2px rgba(13, 79, 92, 0.06);
+    --shadow: 0 4px 12px rgba(13, 79, 92, 0.08);
+    --shadow-lg: 0 12px 32px rgba(13, 79, 92, 0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 18px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overscroll-behavior: none; }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 15px; font-weight: 600; }
+
+  /* ============= LAYOUT ============= */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--bg);
+  }
+
+  .topbar {
+    background: var(--primary);
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+  .topbar h1 {
+    font-size: 18px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    color: white;
+    font-size: 18px;
+  }
+  .topbar .step-counter {
+    font-size: 13px;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progressbar {
+    height: 3px;
+    background: rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  .progressbar > div {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s cubic-bezier(.4,0,.2,1);
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px;
+    padding-bottom: 100px;
+  }
+
+  .footer-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.04);
+  }
+
+  /* ============= COMPONENTS ============= */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .field .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  input[type="text"], input[type="email"], input[type="tel"], input[type="number"],
+  input[type="date"], input[type="time"], select, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 16px;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 79, 92, 0.12);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .row { display: grid; gap: 12px; }
+  .row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 480px) {
+    .row.cols-2, .row.cols-3 { grid-template-columns: 1fr; }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 18px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+    min-height: 48px;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    flex: 1;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-accent {
+    background: var(--accent);
+    color: white;
+    flex: 1;
+  }
+  .btn-accent:hover { background: var(--accent-dark); }
+  .btn-ghost {
+    background: var(--surface-2);
+    color: var(--text);
+    flex: 0 0 auto;
+  }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+  }
+  .btn-sm {
+    padding: 8px 12px;
+    min-height: 36px;
+    font-size: 13px;
+  }
+  .btn-block { width: 100%; }
+
+  /* Toggle switch */
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+    border: 1.5px solid transparent;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .toggle:hover { border-color: var(--border-strong); }
+  .toggle input { display: none; }
+  .toggle .switch {
+    width: 44px; height: 26px;
+    background: var(--border-strong);
+    border-radius: 999px;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .toggle .switch::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked ~ .switch { background: var(--primary); }
+  .toggle input:checked ~ .switch::after { transform: translateX(18px); }
+  .toggle .label {
+    font-weight: 500;
+    flex: 1;
+    margin-right: 12px;
+  }
+  .toggle .label small {
+    display: block;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* Section header */
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+  .section-title small {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .section-intro {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* Furniture catalog */
+  .search-bar {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    padding: 4px 0 12px;
+    z-index: 5;
+    margin: -4px 0 0;
+  }
+  .search-input {
+    position: relative;
+  }
+  .search-input::before {
+    content: '🔍';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .search-input input {
+    padding-left: 42px;
+  }
+
+  .room-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .room-tabs::-webkit-scrollbar { display: none; }
+  .room-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1.5px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-muted);
+  }
+  .room-tab.active {
+    background: var(--primary);
+    color: white;
+  }
+  .room-tab .badge {
+    margin-left: 6px;
+    background: rgba(255,255,255,0.2);
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+  }
+  .room-tab:not(.active) .badge {
+    background: var(--accent);
+    color: white;
+  }
+
+  .furniture-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    gap: 12px;
+  }
+  .furniture-item.selected {
+    border-color: var(--primary);
+    background: linear-gradient(0deg, rgba(13,79,92,0.04), rgba(13,79,92,0.04)), var(--surface);
+  }
+  .furniture-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .furniture-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+  .furniture-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .furniture-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .furniture-tag.fragile { background: #fdf0e6; color: var(--warning); }
+  .furniture-tag.demontage { background: #e7eef0; color: var(--primary); }
+
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .qty-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    background: var(--surface);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    transition: all 0.15s;
+  }
+  .qty-btn:hover { border-color: var(--primary); }
+  .qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .qty-display {
+    min-width: 28px;
+    text-align: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Summary box */
+  .summary-box {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 14px;
+  }
+  .summary-row.total {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    margin-top: 8px;
+    padding-top: 12px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .summary-row span:last-child {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Recommendation */
+  .recommendation {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    border: 2px solid var(--accent);
+    box-shadow: var(--shadow);
+  }
+  .recommendation h3 {
+    color: var(--accent-dark);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .reco-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .reco-cell {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .reco-cell .num {
+    font-family: 'Bricolage Grotesque', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .reco-cell .lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Quick stats card */
+  .stats-card {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .stats-card > div {
+    background: var(--surface);
+    padding: 14px;
+    text-align: center;
+  }
+  .stats-card .stat-num {
+    font-family: 'Bricolage Grotesque', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stats-card .stat-lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+
+  /* Photo grid */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .photo-thumb {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+  }
+  .photo-thumb .delete {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-add {
+    aspect-ratio: 1;
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-direction: column;
+    color: var(--text-muted);
+    font-size: 11px;
+    gap: 4px;
+    background: var(--surface);
+  }
+  .photo-add:hover { border-color: var(--primary); color: var(--primary); }
+  .photo-add input { display: none; }
+
+  /* Signature pad */
+  .sig-pad {
+    width: 100%;
+    height: 200px;
+    background: var(--surface);
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  /* Empty / start screen */
+  .start-screen {
+    text-align: center;
+    padding: 30px 20px;
+  }
+  .start-hero {
+    margin: 20px 0 30px;
+  }
+  .start-hero h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .start-hero p {
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* Draft list */
+  .draft-item {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: border-color 0.15s, transform 0.1s;
+    text-align: left;
+  }
+  .draft-item:hover { border-color: var(--primary); }
+  .draft-item:active { transform: scale(0.99); }
+  .draft-info { flex: 1; }
+  .draft-info .name { font-weight: 600; }
+  .draft-info .date { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .draft-info .vol { font-size: 12px; color: var(--primary); margin-top: 2px; }
+  .draft-actions { display: flex; gap: 4px; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+    animation: slideUp 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  .modal h3 { margin-bottom: 8px; }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    margin: -8px auto 16px;
+  }
+
+  /* AI badge */
+  .ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #6b46c1, #9333ea);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 90vw;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-10px);
+  }
+
+  /* Status pill */
+  .pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .pill.success { background: #e0f2e7; color: var(--success); }
+  .pill.warning { background: #fef3c7; color: var(--warning); }
+
+  /* Cost breakdown */
+  .cost-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .cost-table tr {
+    border-bottom: 1px solid var(--border);
+  }
+  .cost-table tr:last-child { border-bottom: none; }
+  .cost-table td {
+    padding: 10px 0;
+    vertical-align: top;
+  }
+  .cost-table td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .cost-table td small {
+    color: var(--text-muted);
+    font-size: 12px;
+    display: block;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .cost-table tr.total td {
+    font-size: 17px;
+    font-weight: 700;
+    border-top: 2px solid var(--primary);
+    padding-top: 14px;
+    color: var(--primary);
+  }
+  .cost-table tr.subtotal td {
+    font-weight: 600;
+    padding-top: 8px;
+  }
+  
+  .info-banner {
+    background: #e7eef0;
+    border-left: 3px solid var(--primary);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--primary-dark);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  /* Slider control for distance */
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 32px;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--surface-2);
+    height: 6px;
+    border-radius: 3px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px; height: 24px;
+    background: var(--primary);
+    border-radius: 50%;
+    margin-top: -9px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  input[type="range"]::-moz-range-track {
+    background: var(--surface-2);
+    height: 6px;
+    border-radius: 3px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 24px; height: 24px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .offline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(45,122,74,0.15);
+    color: #a3e9b8;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .offline-pill::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 24px; }
+    .reco-grid { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .reco-cell { padding: 8px 4px; }
+    .reco-cell .num { font-size: 22px; }
+    .stats-card .stat-num { font-size: 18px; }
+    .content { padding: 16px; padding-bottom: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top bar -->
+  <header class="topbar">
+    <h1>
+      <span class="logo-mark">U</span>
+      <span id="topbar-title">Bestandesaufnahme</span>
+    </h1>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="offline-pill">offline</span>
+      <span class="step-counter" id="step-counter"></span>
+    </div>
+  </header>
+  <div class="progressbar"><div id="progress" style="width:0%"></div></div>
+
+  <!-- Main content -->
+  <main class="content" id="content"></main>
+
+  <!-- Footer nav (hidden on start screen) -->
+  <nav class="footer-nav" id="footer-nav" style="display:none;">
+    <button class="btn btn-ghost" id="btn-back">Zurück</button>
+    <button class="btn btn-primary" id="btn-next">Weiter</button>
+  </nav>
+</div>
+
+<div id="modal-host"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================
+   UMZUGSKOORDINATOR — Bestandesaufnahme & Offerten-App
+   ===========================================================
+   - Funktioniert offline (localStorage)
+   - Möbel-Katalog aus mitgelieferter Excel-Liste
+   - Preise basierend auf Happy Umzug (Richtwerte)
+   - PDF-Export via jsPDF
+   - Unterschrift via Canvas
+   - Foto-Dokumentation via Kamera
+   =========================================================== */
+
+/* ---------- 1. MÖBEL-STAMMDATEN (aus Excel-Liste) ---------- */
+const FURNITURE_CATALOG = [
+  // Wohnzimmer
+  { id:'sofa2', name:'Sofa (2-Sitzer)', room:'Wohnzimmer', volume:1.156, weight:65, fragile:false, demontage:false },
+  { id:'sofa3', name:'Sofa (3-Sitzer)', room:'Wohnzimmer', volume:1.782, weight:90, fragile:false, demontage:true, note:'Beine abschrauben' },
+  { id:'sofaeck', name:'Sofa (Eckgarnitur)', room:'Wohnzimmer', volume:5.544, weight:140, fragile:false, demontage:true, note:'In Teile zerlegen' },
+  { id:'couchtisch', name:'Couchtisch', room:'Wohnzimmer', volume:0.324, weight:20, fragile:true, demontage:false, note:'Glasplatte sichern' },
+  { id:'tvmoebel', name:'TV-Möbel / Lowboard', room:'Wohnzimmer', volume:0.446, weight:45, fragile:false, demontage:false },
+  { id:'buecher', name:'Bücherregal', room:'Wohnzimmer', volume:0.48, weight:40, fragile:false, demontage:true },
+  { id:'buecherg', name:'Bücherregal (gross)', room:'Wohnzimmer', volume:0.924, weight:60, fragile:false, demontage:true },
+  { id:'vitrine', name:'Vitrine', room:'Wohnzimmer', volume:0.684, weight:55, fragile:true, demontage:true, note:'Glasscheiben sichern' },
+  { id:'sessel', name:'Sessel', room:'Wohnzimmer', volume:0.689, weight:35, fragile:false, demontage:false },
+  { id:'stehlampe', name:'Stehlampe', room:'Wohnzimmer', volume:0.208, weight:5, fragile:true, demontage:false },
+  { id:'sideboard', name:'Sideboard', room:'Wohnzimmer', volume:0.576, weight:60, fragile:false, demontage:false },
+  // Esszimmer
+  { id:'tischk', name:'Esstisch (klein)', room:'Esszimmer', volume:0.73, weight:40, fragile:false, demontage:true },
+  { id:'tischg', name:'Esstisch (gross)', room:'Esszimmer', volume:1.52, weight:65, fragile:false, demontage:true },
+  { id:'tischausz', name:'Esstisch ausziehbar', room:'Esszimmer', volume:1.094, weight:70, fragile:false, demontage:true },
+  { id:'esstuhl', name:'Essstuhl', room:'Esszimmer', volume:0.214, weight:8, fragile:false, demontage:false },
+  { id:'highboard', name:'Highboard / Anrichte', room:'Esszimmer', volume:0.756, weight:70, fragile:false, demontage:false },
+  { id:'buffet', name:'Buffet / Kredenz', room:'Esszimmer', volume:1.8, weight:100, fragile:true, demontage:true, note:'Glaselemente sichern' },
+  // Schlafzimmer
+  { id:'einzelbett', name:'Einzelbett 90×200', room:'Schlafzimmer', volume:2.15, weight:50, fragile:false, demontage:true, note:'Lattenrost separat' },
+  { id:'doppel140', name:'Doppelbett 140×200', room:'Schlafzimmer', volume:3.666, weight:70, fragile:false, demontage:true },
+  { id:'doppel160', name:'Doppelbett 160×200', room:'Schlafzimmer', volume:4.139, weight:80, fragile:false, demontage:true },
+  { id:'doppel180', name:'Doppelbett 180×200', room:'Schlafzimmer', volume:4.612, weight:90, fragile:false, demontage:true },
+  { id:'matraE', name:'Matratze Einzel', room:'Schlafzimmer', volume:0.4, weight:25, fragile:false, demontage:false },
+  { id:'matraD', name:'Matratze Doppel', room:'Schlafzimmer', volume:0.8, weight:40, fragile:false, demontage:false },
+  { id:'nachttisch', name:'Nachttisch', room:'Schlafzimmer', volume:0.11, weight:15, fragile:false, demontage:false },
+  { id:'kls2', name:'Kleiderschrank (2-türig)', room:'Schlafzimmer', volume:1.32, weight:80, fragile:false, demontage:true, note:'Türen abhängen' },
+  { id:'kls3', name:'Kleiderschrank (3-türig)', room:'Schlafzimmer', volume:1.98, weight:110, fragile:false, demontage:true, note:'Türen abhängen' },
+  { id:'kls4', name:'Kleiderschrank (4-türig)', room:'Schlafzimmer', volume:2.64, weight:140, fragile:false, demontage:true, note:'Türen abhängen' },
+  { id:'kommode', name:'Kommode', room:'Schlafzimmer', volume:0.45, weight:45, fragile:false, demontage:false },
+  { id:'schmink', name:'Schminktisch / Frisiertisch', room:'Schlafzimmer', volume:0.338, weight:25, fragile:true, demontage:false, note:'Spiegel sichern' },
+  // Küche
+  { id:'kuehlk', name:'Kühlschrank (klein)', room:'Küche', volume:0.462, weight:50, fragile:false, demontage:false, note:'24h vorher abtauen' },
+  { id:'kuehlg', name:'Kühlschrank (gross)', room:'Küche', volume:0.98, weight:80, fragile:false, demontage:false, note:'24h vorher abtauen' },
+  { id:'gefrier', name:'Gefrierschrank', room:'Küche', volume:0.643, weight:60, fragile:false, demontage:false, note:'24h vorher abtauen' },
+  { id:'sidebyside', name:'Side-by-Side Kühlschrank', room:'Küche', volume:1.134, weight:130, fragile:false, demontage:false },
+  { id:'gespuel', name:'Geschirrspüler', room:'Küche', volume:0.306, weight:45, fragile:false, demontage:false },
+  { id:'waschm', name:'Waschmaschine', room:'Küche', volume:0.306, weight:70, fragile:false, demontage:false, note:'Transportsicherung' },
+  { id:'tumbler', name:'Wäschetrockner', room:'Küche', volume:0.306, weight:40, fragile:false, demontage:false },
+  { id:'herd', name:'Herd / Kochfeld', room:'Küche', volume:0.324, weight:45, fragile:false, demontage:false, note:'Vom Fachmann trennen' },
+  { id:'kueinsel', name:'Kücheninsel / Block', room:'Küche', volume:0.864, weight:80, fragile:false, demontage:true },
+  // Badezimmer
+  { id:'badschrank', name:'Badezimmerschrank', room:'Bad', volume:0.324, weight:30, fragile:true, demontage:false, note:'Spiegel sichern' },
+  { id:'waschunter', name:'Waschbeckenunterschrank', room:'Bad', volume:0.216, weight:25, fragile:false, demontage:false },
+  { id:'badewanne', name:'Badewanne (freistehend)', room:'Bad', volume:0.884, weight:90, fragile:true, demontage:false, note:'Nur mit Spezialisten' },
+  { id:'dusche', name:'Duschkabine', room:'Bad', volume:1.62, weight:40, fragile:true, demontage:true, note:'Glaselemente sichern' },
+  // Büro
+  { id:'schreibtk', name:'Schreibtisch (klein)', room:'Büro', volume:0.54, weight:30, fragile:false, demontage:true },
+  { id:'schreibtg', name:'Schreibtisch (gross)', room:'Büro', volume:1.08, weight:50, fragile:false, demontage:true },
+  { id:'buerostuhl', name:'Bürostuhl', room:'Büro', volume:0.465, weight:15, fragile:false, demontage:false },
+  { id:'akten', name:'Aktenschrank', room:'Büro', volume:0.576, weight:55, fragile:false, demontage:false },
+  { id:'drucker', name:'Drucker', room:'Büro', volume:0.06, weight:10, fragile:true, demontage:false },
+  { id:'monitor', name:'Monitor', room:'Büro', volume:0.06, weight:5, fragile:true, demontage:false },
+  { id:'pc', name:'Desktop-PC', room:'Büro', volume:0.045, weight:12, fragile:true, demontage:false },
+  // Garten
+  { id:'gtisch', name:'Gartentisch', room:'Garten', volume:1.08, weight:25, fragile:false, demontage:true },
+  { id:'gstuhl', name:'Gartenstuhl', room:'Garten', volume:0.272, weight:5, fragile:false, demontage:false },
+  { id:'sonnenliege', name:'Sonnenliege', room:'Garten', volume:0.399, weight:12, fragile:false, demontage:false },
+  { id:'sonnenschirm', name:'Sonnenschirm', room:'Garten', volume:0.4, weight:8, fragile:false, demontage:true },
+  { id:'gbank', name:'Gartenbank', room:'Garten', volume:0.748, weight:20, fragile:false, demontage:false },
+  { id:'gschaukel', name:'Gartenschaukel', room:'Garten', volume:4.08, weight:30, fragile:false, demontage:true },
+  { id:'poolliege', name:'Poolliege', room:'Garten', volume:0.432, weight:10, fragile:false, demontage:false },
+  { id:'pflanzkubel', name:'Pflanzenkübel (gross)', room:'Garten', volume:0.15, weight:15, fragile:false, demontage:false },
+  // Kinderzimmer
+  { id:'kinderbett', name:'Kinderbett', room:'Kinderzimmer', volume:1.188, weight:35, fragile:false, demontage:true },
+  { id:'juniorbett', name:'Juniorbett', room:'Kinderzimmer', volume:1.753, weight:40, fragile:false, demontage:true },
+  { id:'hochbett', name:'Hochbett / Etagenbett', room:'Kinderzimmer', volume:3.57, weight:60, fragile:false, demontage:true, note:'Vollständig demontieren' },
+  { id:'kinderschrank', name:'Kinderschrank', room:'Kinderzimmer', volume:1.018, weight:60, fragile:false, demontage:true },
+  { id:'spielzeug', name:'Spielzeugkiste', room:'Kinderzimmer', volume:0.16, weight:10, fragile:false, demontage:false },
+  { id:'wickel', name:'Wickeltisch', room:'Kinderzimmer', volume:0.4, weight:20, fragile:false, demontage:false },
+  // Diverses
+  { id:'kleider', name:'Kleiderstange', room:'Diverses', volume:0.85, weight:10, fragile:false, demontage:true },
+  { id:'weinregal', name:'Weinregal', room:'Diverses', volume:0.162, weight:15, fragile:true, demontage:false },
+  { id:'tresor', name:'Standtresor', room:'Diverses', volume:0.096, weight:100, fragile:false, demontage:false, note:'Sehr schwer!' },
+  { id:'aquarium', name:'Aquarium (klein)', room:'Diverses', volume:0.072, weight:20, fragile:true, demontage:false, note:'Wasser ablassen' },
+  { id:'fahrrad', name:'Fahrrad', room:'Diverses', volume:0.85, weight:12, fragile:false, demontage:false },
+];
+
+const ROOMS = ['Wohnzimmer','Esszimmer','Schlafzimmer','Küche','Bad','Büro','Garten','Kinderzimmer','Diverses'];
+
+/* ---------- 2. PREISMODELL (Happy Umzug Richtwerte) ---------- */
+const PRICING = {
+  // All-Inclusive Stundentarife (CHF/h, inkl. Wagen, Mitarbeiter, Treibstoff, Versicherung, Standardkartons)
+  hourly: {
+    1: { min: 99, max: 119, vehicle: '22m³ Möbelwagen' },     // 1 Mitarbeiter
+    2: { min: 149, max: 169, vehicle: '22m³ Möbelwagen' },    // 2 Mitarbeiter
+    3: { min: 199, max: 219, vehicle: '36m³ Wagen + Anhänger' }, // 3 Mitarbeiter
+    4: { min: 249, max: 279, vehicle: '36m³ Wagen + Anhänger' }, // hochgerechnet
+    5: { min: 299, max: 339, vehicle: '50m³ LKW' },            // hochgerechnet
+    6: { min: 349, max: 399, vehicle: '50m³ LKW + Anhänger' },  // hochgerechnet
+  },
+  helper_only: 65, // CHF/h pro zusätzlichen Helfer (eigenes Fahrzeug)
+  helper_min_hours: 4,
+  // Entsorgung
+  disposal_per_m3: 49, // CHF/m³
+  // Reinigung mit Abgabegarantie (von Happy Umzug)
+  cleaning: {
+    1.5: { min: 590, max: 890 },
+    2.5: { min: 690, max: 990 },
+    3.5: { min: 790, max: 1090 },
+    4.5: { min: 890, max: 1390 },
+    5.5: { min: 1290, max: 1790 },
+    6.5: { min: 1590, max: 2290 },
+  },
+  // Materialien (Marktpreise CH)
+  material: {
+    karton_miete: { name: 'Umzugskarton (Miete)', price: 2.50, unit: 'Stk' },
+    karton_kauf:  { name: 'Umzugskarton (Kauf)',  price: 3.50, unit: 'Stk' },
+    kleiderbox_miete: { name: 'Kleiderbox (Miete)', price: 8.00, unit: 'Stk' },
+    geschirr_miete: { name: 'Geschirrkarton (Miete)', price: 4.00, unit: 'Stk' },
+    matratzenhuelle: { name: 'Matratzenhülle', price: 8.00, unit: 'Stk' },
+    luftpolster: { name: 'Luftpolsterfolie (Rolle)', price: 22.00, unit: 'Rolle' },
+    klebeband: { name: 'Klebeband (Rolle)', price: 4.00, unit: 'Rolle' },
+    seidenpapier: { name: 'Seidenpapier (kg)', price: 12.00, unit: 'kg' },
+  },
+  // Demontage / Montage (interne Kalkulation: zusätzliche Stunden)
+  demontage_min_per_item: 12, // Minuten pro Möbelstück mit Demontagebedarf
+  // Stockwerk-Zuschlag (ohne Lift): zusätzliche Minuten pro Stockwerk und m³
+  stockwerk_min_per_floor_per_m3: 2,
+  // MwSt
+  mwst: 0.081, // 8.1% (Schweiz 2024+)
+};
+
+/* Lieferwagen-Logik */
+function recommendVehicle(volumeM3, hasHeavyItems) {
+  // Mit Sicherheitspuffer von 15%
+  const v = volumeM3 * 1.15;
+  if (v <= 18) return { type: '22m³ Möbelwagen', capacity: 22, count: 1, employees: 2 };
+  if (v <= 30) return { type: '22m³ Möbelwagen', capacity: 22, count: 1, employees: 3 };
+  if (v <= 36) return { type: '36m³ Wagen mit Anhänger', capacity: 36, count: 1, employees: 3 };
+  if (v <= 50) return { type: '50m³ LKW', capacity: 50, count: 1, employees: 4 };
+  if (v <= 70) return { type: '36m³ + 22m³ Wagen', capacity: 58, count: 2, employees: 5 };
+  return { type: '50m³ LKW + 36m³ Wagen', capacity: 86, count: 2, employees: 6 };
+}
+
+/* Mitarbeiter-Anzahl: 1 pro 8-10 m³, +1 pro 2 Stockwerke ohne Lift */
+function recommendStaff(volumeM3, floorsNoLift) {
+  const base = Math.max(2, Math.ceil(volumeM3 / 9));
+  const extra = Math.floor(floorsNoLift / 2);
+  return Math.min(base + extra, 6);
+}
+
+/* Stunden-Schätzung */
+function estimateHours(volumeM3, demontageItems, totalFloorsNoLift, distanceKm, employees) {
+  // Lade- und Entladezeit: ~1 m³ pro Mitarbeiter pro 22 Min
+  const loadMinutes = (volumeM3 * 22) / employees * 2; // load + unload
+  // Demontagezeit
+  const demoMinutes = demontageItems * PRICING.demontage_min_per_item;
+  // Stockwerk-Zuschlag
+  const floorMinutes = totalFloorsNoLift * volumeM3 * PRICING.stockwerk_min_per_floor_per_m3;
+  // Fahrzeit: ~50 km/h Durchschnitt + 30 Min Vor-/Nacharbeit
+  const driveMinutes = (distanceKm / 50) * 60 + 30;
+  const total = loadMinutes + demoMinutes + floorMinutes + driveMinutes;
+  return Math.max(2, Math.ceil(total / 60 * 2) / 2); // auf 0.5h aufrunden, min 2h
+}
+
+/* ---------- 3. STATE-MANAGEMENT ---------- */
+const STATE_KEY = 'umzug_app_state_v1';
+const DRAFTS_KEY = 'umzug_drafts_v1';
+const CUSTOM_FURNITURE_KEY = 'umzug_custom_furniture_v1';
+
+function emptyJob() {
+  return {
+    id: 'job_' + Date.now(),
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+    customer: { firstname:'', lastname:'', phone:'', email:'' },
+    moveDate: '',
+    moveTime: '08:00',
+    fromAddr: emptyAddress(),
+    toAddr: emptyAddress(),
+    distanceKm: 10,
+    items: {}, // id -> qty
+    customItems: [], // ad-hoc items
+    services: {
+      boxes: { rent: 0, buy: 0, kleider: 0, geschirr: 0, matratze: 0, luftpolster: 0, klebeband: 0 },
+      demontage: true,
+      montage: true,
+      reinigung: false,
+      reinigung_size: 3.5, // Zimmerzahl
+      entsorgung: false,
+      entsorgung_volume: 0,
+    },
+    photos: [], // dataURLs
+    notes: '',
+    signature: null,
+    sentAt: null,
+  };
+}
+function emptyAddress() {
+  return {
+    label: '',
+    street: '', plz: '', ort: '',
+    floor: 0, lift: false, liftSize: 'normal',
+    treppenhaus: 'gerade',
+    tragdistanz: 10, // m
+    parking: 'frei',
+    enge_zufahrt: false,
+    notes: '',
+  };
+}
+
+let job = emptyJob();
+let currentStep = 0; // 0 = start, 1..N = steps
+let activeRoom = ROOMS[0];
+let searchQuery = '';
+let customFurniture = [];
+
+const STEPS = [
+  { id:'start', title:'Start', show:'top' },
+  { id:'customer', title:'Kunde' },
+  { id:'addr_from', title:'Auszug' },
+  { id:'addr_to', title:'Einzug' },
+  { id:'inventory', title:'Möbel' },
+  { id:'services', title:'Zusatzleistungen' },
+  { id:'photos', title:'Fotos & Notizen' },
+  { id:'summary', title:'Zusammenfassung' },
+  { id:'offer', title:'Offerte & Unterschrift' },
+];
+
+/* ---------- 4. PERSISTENCE (offline) ---------- */
+function saveState() {
+  job.updated = new Date().toISOString();
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify({ job, currentStep, activeRoom }));
+  } catch (e) { console.warn('Save failed', e); }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    job = data.job || emptyJob();
+    currentStep = data.currentStep || 0;
+    activeRoom = data.activeRoom || ROOMS[0];
+    return true;
+  } catch (e) { return false; }
+}
+function loadDrafts() {
+  try { return JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function saveDraft() {
+  const drafts = loadDrafts();
+  const idx = drafts.findIndex(d => d.id === job.id);
+  const draftEntry = {
+    id: job.id,
+    name: `${job.customer.firstname} ${job.customer.lastname}`.trim() || 'Unbenannte Aufnahme',
+    date: job.moveDate || job.created,
+    updated: job.updated,
+    volume: getTotalVolume(),
+    job: job,
+  };
+  if (idx >= 0) drafts[idx] = draftEntry;
+  else drafts.push(draftEntry);
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+}
+function deleteDraft(id) {
+  const drafts = loadDrafts().filter(d => d.id !== id);
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+}
+function loadDraftIntoJob(id) {
+  const drafts = loadDrafts();
+  const d = drafts.find(x => x.id === id);
+  if (d) { job = d.job; saveState(); }
+}
+function loadCustomFurniture() {
+  try { customFurniture = JSON.parse(localStorage.getItem(CUSTOM_FURNITURE_KEY) || '[]'); }
+  catch (e) { customFurniture = []; }
+}
+function saveCustomFurniture() {
+  localStorage.setItem(CUSTOM_FURNITURE_KEY, JSON.stringify(customFurniture));
+}
+
+/* ---------- 5. CALCULATIONS ---------- */
+function getAllFurniture() {
+  return [...FURNITURE_CATALOG, ...customFurniture];
+}
+function getItemQty(id) { return job.items[id] || 0; }
+function setItemQty(id, qty) {
+  if (qty <= 0) delete job.items[id];
+  else job.items[id] = qty;
+  saveState();
+}
+
+function getTotalVolume() {
+  let total = 0;
+  for (const id in job.items) {
+    const item = getAllFurniture().find(f => f.id === id);
+    if (item) total += item.volume * job.items[id];
+  }
+  for (const ci of job.customItems) total += ci.volume * ci.qty;
+  return total;
+}
+function getTotalWeight() {
+  let total = 0;
+  for (const id in job.items) {
+    const item = getAllFurniture().find(f => f.id === id);
+    if (item) total += item.weight * job.items[id];
+  }
+  for (const ci of job.customItems) total += (ci.weight || 0) * ci.qty;
+  return total;
+}
+function getDemontageCount() {
+  let count = 0;
+  for (const id in job.items) {
+    const item = getAllFurniture().find(f => f.id === id);
+    if (item && item.demontage) count += job.items[id];
+  }
+  return count;
+}
+function getTotalItemCount() {
+  let count = 0;
+  for (const id in job.items) count += job.items[id];
+  for (const ci of job.customItems) count += ci.qty;
+  return count;
+}
+function getRoomCount(room) {
+  let count = 0;
+  for (const id in job.items) {
+    const item = getAllFurniture().find(f => f.id === id);
+    if (item && item.room === room) count += job.items[id];
+  }
+  return count;
+}
+
+function calcCosts() {
+  const volume = getTotalVolume();
+  const demoItems = job.services.demontage ? getDemontageCount() : 0;
+  const fromFloors = job.fromAddr.lift ? 0 : (job.fromAddr.floor || 0);
+  const toFloors = job.toAddr.lift ? 0 : (job.toAddr.floor || 0);
+  const totalFloorsNoLift = fromFloors + toFloors;
+  const vehicle = recommendVehicle(volume);
+  const employees = recommendStaff(volume, totalFloorsNoLift);
+  const hours = estimateHours(volume, demoItems, totalFloorsNoLift, job.distanceKm, employees);
+
+  // Stundentarif basierend auf Mitarbeiterzahl
+  const tier = PRICING.hourly[Math.min(employees, 6)] || PRICING.hourly[6];
+  const hourlyRate = (tier.min + tier.max) / 2;
+  const moveCost = hours * hourlyRate;
+
+  // Materialien
+  const m = job.services.boxes;
+  const materialCost =
+    m.rent * PRICING.material.karton_miete.price +
+    m.buy * PRICING.material.karton_kauf.price +
+    m.kleider * PRICING.material.kleiderbox_miete.price +
+    m.geschirr * PRICING.material.geschirr_miete.price +
+    m.matratze * PRICING.material.matratzenhuelle.price +
+    m.luftpolster * PRICING.material.luftpolster.price +
+    m.klebeband * PRICING.material.klebeband.price;
+
+  // Reinigung
+  let cleaningCost = 0;
+  if (job.services.reinigung) {
+    const c = PRICING.cleaning[job.services.reinigung_size] || PRICING.cleaning[3.5];
+    cleaningCost = (c.min + c.max) / 2;
+  }
+
+  // Entsorgung
+  let disposalCost = 0;
+  if (job.services.entsorgung && job.services.entsorgung_volume > 0) {
+    disposalCost = job.services.entsorgung_volume * PRICING.disposal_per_m3;
+  }
+
+  const subtotal = moveCost + materialCost + cleaningCost + disposalCost;
+  const mwst = subtotal * PRICING.mwst;
+  const total = subtotal + mwst;
+
+  return {
+    volume, demoItems, totalFloorsNoLift, vehicle, employees, hours,
+    hourlyRate, moveCost, materialCost, cleaningCost, disposalCost,
+    subtotal, mwst, total, tier,
+  };
+}
+
+function chf(n) {
+  return 'CHF ' + Number(n).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function num(n, dec=2) {
+  return Number(n).toLocaleString('de-CH', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+/* ---------- 6. RENDERING ---------- */
+const $content = document.getElementById('content');
+const $progress = document.getElementById('progress');
+const $stepCounter = document.getElementById('step-counter');
+const $topbarTitle = document.getElementById('topbar-title');
+const $footerNav = document.getElementById('footer-nav');
+const $btnBack = document.getElementById('btn-back');
+const $btnNext = document.getElementById('btn-next');
+
+function renderApp() {
+  if (currentStep === 0) {
+    renderStart();
+    $footerNav.style.display = 'none';
+    $progress.style.width = '0%';
+    $stepCounter.textContent = '';
+    $topbarTitle.textContent = 'Umzugskoordinator';
+  } else {
+    $footerNav.style.display = 'flex';
+    const total = STEPS.length - 1; // exclude start
+    $progress.style.width = (currentStep / total * 100) + '%';
+    $stepCounter.textContent = `Schritt ${currentStep} / ${total}`;
+    $topbarTitle.textContent = STEPS[currentStep].title;
+    $btnBack.textContent = currentStep === 1 ? 'Abbrechen' : 'Zurück';
+    $btnNext.textContent = currentStep === STEPS.length - 1 ? 'Abschliessen' : 'Weiter';
+
+    const renderers = {
+      customer: renderCustomer,
+      addr_from: () => renderAddress('from'),
+      addr_to: () => renderAddress('to'),
+      inventory: renderInventory,
+      services: renderServices,
+      photos: renderPhotos,
+      summary: renderSummary,
+      offer: renderOffer,
+    };
+    const fn = renderers[STEPS[currentStep].id];
+    if (fn) fn();
+  }
+}
+
+/* ----- Start screen ----- */
+function renderStart() {
+  const drafts = loadDrafts().sort((a,b) => new Date(b.updated) - new Date(a.updated));
+  $content.innerHTML = `
+    <div class="start-screen">
+      <div class="start-hero">
+        <h1>Umzugs&shy;koordinator</h1>
+        <p>Erfasse vor Ort die Möbelliste, berechne Kosten, generiere Offerten – auch offline.</p>
+      </div>
+
+      <button class="btn btn-accent btn-block" id="new-job-btn">＋ Neue Bestandesaufnahme</button>
+
+      ${drafts.length ? `
+        <div style="margin-top:30px; text-align:left;">
+          <h3 style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:baseline;">
+            Gespeicherte Aufnahmen
+            <small style="font-size:13px; color:var(--text-muted); font-weight:400;">${drafts.length} ${drafts.length === 1 ? 'Eintrag' : 'Einträge'}</small>
+          </h3>
+          ${drafts.map(d => `
+            <div class="draft-item" data-id="${d.id}">
+              <div class="draft-info" data-action="open" data-id="${d.id}">
+                <div class="name">${escapeHtml(d.name)}</div>
+                <div class="date">${d.date ? formatDate(d.date) : 'Kein Datum'} · zuletzt geändert ${formatRelative(d.updated)}</div>
+                <div class="vol">${num(d.volume,1)} m³ · ${d.job.sentAt ? '<span class="pill success">Versendet</span>' : '<span class="pill">Entwurf</span>'}</div>
+              </div>
+              <div class="draft-actions">
+                <button class="btn btn-ghost btn-sm" data-action="delete" data-id="${d.id}">🗑</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div style="margin-top:40px; text-align:left;">
+          <div class="card" style="background:var(--surface-2); text-align:center; padding:30px 20px;">
+            <div style="font-size:40px; margin-bottom:10px; opacity:0.3;">📋</div>
+            <p style="color:var(--text-muted); font-size:14px;">Noch keine Aufnahmen vorhanden.<br>Starte deine erste Bestandesaufnahme.</p>
+          </div>
+        </div>
+      `}
+
+      <div style="margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:11px; color:var(--text-muted);">
+        Prototyp v1.0 · Preise Richtwerte basierend auf Happy Umzug · ${getAllFurniture().length} Möbel im Katalog
+      </div>
+    </div>
+  `;
+
+  document.getElementById('new-job-btn').addEventListener('click', () => {
+    job = emptyJob();
+    currentStep = 1;
+    saveState();
+    renderApp();
+  });
+
+  $content.querySelectorAll('[data-action="open"]').forEach(el => {
+    el.addEventListener('click', () => {
+      loadDraftIntoJob(el.dataset.id);
+      currentStep = 1;
+      saveState();
+      renderApp();
+    });
+  });
+  $content.querySelectorAll('[data-action="delete"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Aufnahme wirklich löschen?')) {
+        deleteDraft(el.dataset.id);
+        renderApp();
+      }
+    });
+  });
+}
+
+/* ----- Step: Customer ----- */
+function renderCustomer() {
+  $content.innerHTML = `
+    <div class="section-title"><h2>Kundendaten</h2></div>
+    <p class="section-intro">Erfasse zuerst den Kontakt für die Offerte.</p>
+    <div class="card">
+      <div class="row cols-2">
+        <div class="field">
+          <label>Vorname *</label>
+          <input type="text" id="f-firstname" value="${escapeAttr(job.customer.firstname)}" autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label>Nachname *</label>
+          <input type="text" id="f-lastname" value="${escapeAttr(job.customer.lastname)}" autocomplete="family-name">
+        </div>
+      </div>
+      <div class="field">
+        <label>Telefon *</label>
+        <input type="tel" id="f-phone" value="${escapeAttr(job.customer.phone)}" autocomplete="tel" placeholder="+41 79 ...">
+      </div>
+      <div class="field">
+        <label>E-Mail *</label>
+        <input type="email" id="f-email" value="${escapeAttr(job.customer.email)}" autocomplete="email" placeholder="kunde@email.ch">
+      </div>
+      <div class="row cols-2">
+        <div class="field">
+          <label>Umzugsdatum</label>
+          <input type="date" id="f-date" value="${escapeAttr(job.moveDate)}">
+        </div>
+        <div class="field">
+          <label>Startzeit</label>
+          <input type="time" id="f-time" value="${escapeAttr(job.moveTime)}">
+        </div>
+      </div>
+    </div>
+  `;
+  ['firstname','lastname','phone','email'].forEach(k => {
+    document.getElementById('f-'+k).addEventListener('input', e => { job.customer[k] = e.target.value; saveState(); });
+  });
+  document.getElementById('f-date').addEventListener('change', e => { job.moveDate = e.target.value; saveState(); });
+  document.getElementById('f-time').addEventListener('change', e => { job.moveTime = e.target.value; saveState(); });
+}
+
+/* ----- Step: Address ----- */
+function renderAddress(which) {
+  const addr = which === 'from' ? job.fromAddr : job.toAddr;
+  const title = which === 'from' ? 'Auszugsadresse' : 'Einzugsadresse';
+  const intro = which === 'from'
+    ? 'Adresse, von der ausgezogen wird – mit allen Zugangsdetails.'
+    : 'Zieladresse mit den entsprechenden Bedingungen vor Ort.';
+
+  $content.innerHTML = `
+    <div class="section-title"><h2>${title}</h2></div>
+    <p class="section-intro">${intro}</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📍 Adresse</h4>
+      <div class="field">
+        <label>Strasse und Hausnummer</label>
+        <input type="text" id="a-street" value="${escapeAttr(addr.street)}">
+      </div>
+      <div class="row cols-2">
+        <div class="field">
+          <label>PLZ</label>
+          <input type="text" id="a-plz" value="${escapeAttr(addr.plz)}" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Ort</label>
+          <input type="text" id="a-ort" value="${escapeAttr(addr.ort)}">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">🏢 Gebäude & Zugang</h4>
+      <div class="row cols-2">
+        <div class="field">
+          <label>Stockwerk</label>
+          <select id="a-floor">
+            ${[-1,0,1,2,3,4,5,6,7,8].map(f =>
+              `<option value="${f}" ${addr.floor===f?'selected':''}>${f===-1?'Untergeschoss':f===0?'Erdgeschoss':f+'. Stock'}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Treppenhaus</label>
+          <select id="a-treppen">
+            <option value="gerade" ${addr.treppenhaus==='gerade'?'selected':''}>Gerade</option>
+            <option value="gewendelt" ${addr.treppenhaus==='gewendelt'?'selected':''}>Gewendelt</option>
+            <option value="eng" ${addr.treppenhaus==='eng'?'selected':''}>Sehr eng</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="toggle">
+        <span class="label">Lift vorhanden <small>Reduziert Aufwand erheblich</small></span>
+        <input type="checkbox" id="a-lift" ${addr.lift?'checked':''}>
+        <span class="switch"></span>
+      </label>
+
+      <div class="field" id="lift-size-field" style="display:${addr.lift?'block':'none'};">
+        <label>Liftgrösse</label>
+        <select id="a-liftsize">
+          <option value="klein" ${addr.liftSize==='klein'?'selected':''}>Klein (Personenlift)</option>
+          <option value="normal" ${addr.liftSize==='normal'?'selected':''}>Normal</option>
+          <option value="gross" ${addr.liftSize==='gross'?'selected':''}>Gross (Möbel passen problemlos)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">🚛 Fahrzeug & Wege</h4>
+      <div class="field">
+        <label>Tragdistanz Fahrzeug → Eingang: <strong id="trag-display">${addr.tragdistanz} m</strong></label>
+        <input type="range" id="a-trag" min="0" max="100" step="5" value="${addr.tragdistanz}">
+      </div>
+      <div class="field">
+        <label>Parksituation</label>
+        <select id="a-parking">
+          <option value="frei" ${addr.parking==='frei'?'selected':''}>Frei direkt vor Haus</option>
+          <option value="kurz" ${addr.parking==='kurz'?'selected':''}>Kurze Distanz möglich</option>
+          <option value="halteverbot" ${addr.parking==='halteverbot'?'selected':''}>Halteverbotszone nötig</option>
+          <option value="schwierig" ${addr.parking==='schwierig'?'selected':''}>Sehr schwierig</option>
+        </select>
+      </div>
+      <label class="toggle">
+        <span class="label">Enge Zufahrt <small>z.B. schmale Strasse, niedrige Durchfahrt</small></span>
+        <input type="checkbox" id="a-eng" ${addr.enge_zufahrt?'checked':''}>
+        <span class="switch"></span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📝 Bemerkungen</h4>
+      <div class="field">
+        <textarea id="a-notes" placeholder="Besonderheiten, Kontaktperson vor Ort, Zugangscode usw.">${escapeHtml(addr.notes)}</textarea>
+      </div>
+    </div>
+
+    ${which === 'to' ? `
+      <div class="card">
+        <h4 style="margin-bottom:12px;">📏 Distanz Auszug → Einzug</h4>
+        <div class="field">
+          <label>Geschätzte Fahrtdistanz: <strong id="dist-display">${job.distanceKm} km</strong></label>
+          <input type="range" id="dist-input" min="1" max="200" step="1" value="${job.distanceKm}">
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('a-street').addEventListener('input', e => { addr.street = e.target.value; saveState(); });
+  document.getElementById('a-plz').addEventListener('input', e => { addr.plz = e.target.value; saveState(); });
+  document.getElementById('a-ort').addEventListener('input', e => { addr.ort = e.target.value; saveState(); });
+  document.getElementById('a-floor').addEventListener('change', e => { addr.floor = parseInt(e.target.value); saveState(); });
+  document.getElementById('a-treppen').addEventListener('change', e => { addr.treppenhaus = e.target.value; saveState(); });
+  document.getElementById('a-lift').addEventListener('change', e => {
+    addr.lift = e.target.checked;
+    document.getElementById('lift-size-field').style.display = addr.lift ? 'block' : 'none';
+    saveState();
+  });
+  document.getElementById('a-liftsize').addEventListener('change', e => { addr.liftSize = e.target.value; saveState(); });
+  document.getElementById('a-trag').addEventListener('input', e => {
+    addr.tragdistanz = parseInt(e.target.value);
+    document.getElementById('trag-display').textContent = addr.tragdistanz + ' m';
+    saveState();
+  });
+  document.getElementById('a-parking').addEventListener('change', e => { addr.parking = e.target.value; saveState(); });
+  document.getElementById('a-eng').addEventListener('change', e => { addr.enge_zufahrt = e.target.checked; saveState(); });
+  document.getElementById('a-notes').addEventListener('input', e => { addr.notes = e.target.value; saveState(); });
+
+  if (which === 'to') {
+    document.getElementById('dist-input').addEventListener('input', e => {
+      job.distanceKm = parseInt(e.target.value);
+      document.getElementById('dist-display').textContent = job.distanceKm + ' km';
+      saveState();
+    });
+  }
+}
+
+/* ----- Step: Inventory ----- */
+function renderInventory() {
+  const allFurniture = getAllFurniture();
+  const filtered = allFurniture.filter(f => {
+    const matchesRoom = activeRoom === '__search__' ? true : f.room === activeRoom;
+    const matchesSearch = !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesRoom && matchesSearch;
+  });
+
+  // Roomtab counts
+  const roomCounts = {};
+  ROOMS.forEach(r => roomCounts[r] = 0);
+  for (const id in job.items) {
+    const item = allFurniture.find(f => f.id === id);
+    if (item) roomCounts[item.room] = (roomCounts[item.room] || 0) + job.items[id];
+  }
+
+  const total = getTotalVolume();
+  const totalKg = getTotalWeight();
+  const totalCount = getTotalItemCount();
+
+  $content.innerHTML = `
+    <div class="section-title">
+      <h2>Möbel-Bestandesaufnahme</h2>
+    </div>
+
+    <div class="stats-card">
+      <div><div class="stat-num">${num(total,1)}</div><div class="stat-lbl">m³ Total</div></div>
+      <div><div class="stat-num">${num(totalKg,0)}</div><div class="stat-lbl">kg Gewicht</div></div>
+      <div><div class="stat-num">${totalCount}</div><div class="stat-lbl">Stück</div></div>
+    </div>
+
+    <div class="search-bar">
+      <div class="search-input">
+        <input type="text" id="search" placeholder="Möbel suchen…" value="${escapeAttr(searchQuery)}">
+      </div>
+      <div class="room-tabs" id="room-tabs">
+        ${ROOMS.map(r => `
+          <div class="room-tab ${r === activeRoom ? 'active' : ''}" data-room="${r}">
+            ${r}${roomCounts[r] > 0 ? `<span class="badge">${roomCounts[r]}</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div id="furniture-list">
+      ${filtered.length === 0 ? `
+        <div class="empty-state">
+          <div class="icon">🔎</div>
+          <p>Keine Möbel gefunden${searchQuery ? ` für "${escapeHtml(searchQuery)}"` : ''}.</p>
+          <button class="btn btn-accent btn-sm" style="margin-top:14px;" id="add-custom-btn">＋ Neues Möbelstück hinzufügen</button>
+        </div>
+      ` : filtered.map(f => `
+        <div class="furniture-item ${getItemQty(f.id) > 0 ? 'selected' : ''}">
+          <div class="furniture-info">
+            <div class="furniture-name">${escapeHtml(f.name)} ${customFurniture.find(c => c.id === f.id) ? '<span class="ai-badge">✨ Custom</span>' : ''}</div>
+            <div class="furniture-meta">
+              <span>${num(f.volume,2)} m³ · ${f.weight} kg</span>
+              ${f.fragile ? '<span class="furniture-tag fragile">⚠ Zerbrechlich</span>' : ''}
+              ${f.demontage ? '<span class="furniture-tag demontage">🔧 Demontage</span>' : ''}
+            </div>
+            ${f.note ? `<div class="furniture-meta" style="margin-top:3px; font-style:italic;">${escapeHtml(f.note)}</div>` : ''}
+          </div>
+          <div class="qty-control">
+            <button class="qty-btn" data-action="dec" data-id="${f.id}" ${getItemQty(f.id) === 0 ? 'disabled' : ''}>−</button>
+            <span class="qty-display">${getItemQty(f.id)}</span>
+            <button class="qty-btn" data-action="inc" data-id="${f.id}">+</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <button class="btn btn-ghost btn-block" style="margin-top:14px;" id="add-custom-btn-bottom">
+      ✨ Neues Möbelstück hinzufügen (AI lernt)
+    </button>
+
+    ${job.customItems.length > 0 ? `
+      <div style="margin-top:20px;">
+        <h4 style="margin-bottom:10px;">Individuelle Einträge dieser Aufnahme</h4>
+        ${job.customItems.map((ci, idx) => `
+          <div class="furniture-item selected">
+            <div class="furniture-info">
+              <div class="furniture-name">${escapeHtml(ci.name)} <span class="ai-badge">✨ Manuell</span></div>
+              <div class="furniture-meta">
+                <span>${num(ci.volume,2)} m³ · ${ci.weight || 0} kg · ${ci.qty} Stk</span>
+              </div>
+            </div>
+            <div class="qty-control">
+              <button class="btn btn-ghost btn-sm" data-action="del-custom" data-idx="${idx}">🗑</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    renderInventory();
+  });
+  document.getElementById('room-tabs').querySelectorAll('.room-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      activeRoom = el.dataset.room;
+      saveState();
+      renderInventory();
+    });
+  });
+  $content.querySelectorAll('[data-action="inc"]').forEach(b => {
+    b.addEventListener('click', () => { setItemQty(b.dataset.id, getItemQty(b.dataset.id) + 1); renderInventory(); });
+  });
+  $content.querySelectorAll('[data-action="dec"]').forEach(b => {
+    b.addEventListener('click', () => { setItemQty(b.dataset.id, Math.max(0, getItemQty(b.dataset.id) - 1)); renderInventory(); });
+  });
+  $content.querySelectorAll('[data-action="del-custom"]').forEach(b => {
+    b.addEventListener('click', () => {
+      job.customItems.splice(parseInt(b.dataset.idx), 1);
+      saveState();
+      renderInventory();
+    });
+  });
+  ['add-custom-btn','add-custom-btn-bottom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', showCustomFurnitureModal);
+  });
+}
+
+/* ----- Custom furniture modal (AI learns) ----- */
+function showCustomFurnitureModal() {
+  showModal(`
+    <h3>✨ Neues Möbelstück</h3>
+    <p style="color:var(--text-muted); font-size:14px; margin-bottom:14px;">
+      Das Möbelstück wird gespeichert und steht bei zukünftigen Aufnahmen automatisch zur Verfügung.
+    </p>
+    <div class="field">
+      <label>Bezeichnung *</label>
+      <input type="text" id="cf-name" placeholder="z.B. Antikes Klavier, Hometrainer">
+    </div>
+    <div class="field">
+      <label>Raum / Kategorie</label>
+      <select id="cf-room">
+        ${ROOMS.map(r => `<option value="${r}">${r}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row cols-3">
+      <div class="field">
+        <label>Breite (cm)</label>
+        <input type="number" id="cf-w" value="100" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Tiefe (cm)</label>
+        <input type="number" id="cf-d" value="50" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Höhe (cm)</label>
+        <input type="number" id="cf-h" value="80" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label>Geschätztes Gewicht (kg)</label>
+      <input type="number" id="cf-kg" value="30" inputmode="numeric">
+    </div>
+    <label class="toggle"><span class="label">Zerbrechlich</span><input type="checkbox" id="cf-fragile"><span class="switch"></span></label>
+    <label class="toggle"><span class="label">Demontage erforderlich</span><input type="checkbox" id="cf-demo"><span class="switch"></span></label>
+
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn btn-ghost" data-action="modal-close">Abbrechen</button>
+      <button class="btn btn-primary" id="cf-save-perm">In Katalog speichern</button>
+    </div>
+    <button class="btn btn-accent btn-block" style="margin-top:8px;" id="cf-save-once">Nur für diese Aufnahme</button>
+  `);
+
+  document.getElementById('cf-save-perm').addEventListener('click', () => {
+    const data = readCustomForm();
+    if (!data) return;
+    const item = { ...data, id: 'custom_' + Date.now() };
+    customFurniture.push(item);
+    saveCustomFurniture();
+    setItemQty(item.id, 1);
+    closeModal();
+    toast('✨ Möbelstück im Katalog gespeichert');
+    renderInventory();
+  });
+  document.getElementById('cf-save-once').addEventListener('click', () => {
+    const data = readCustomForm();
+    if (!data) return;
+    job.customItems.push({ ...data, qty: 1 });
+    saveState();
+    closeModal();
+    toast('Hinzugefügt');
+    renderInventory();
+  });
+
+  function readCustomForm() {
+    const name = document.getElementById('cf-name').value.trim();
+    if (!name) { toast('Bitte Bezeichnung eingeben'); return null; }
+    const w = parseFloat(document.getElementById('cf-w').value) || 0;
+    const d = parseFloat(document.getElementById('cf-d').value) || 0;
+    const h = parseFloat(document.getElementById('cf-h').value) || 0;
+    const volume = (w * d * h) / 1_000_000;
+    return {
+      name,
+      room: document.getElementById('cf-room').value,
+      volume: Math.round(volume * 1000) / 1000,
+      weight: parseFloat(document.getElementById('cf-kg').value) || 0,
+      fragile: document.getElementById('cf-fragile').checked,
+      demontage: document.getElementById('cf-demo').checked,
+    };
+  }
+}
+
+/* ----- Step: Services ----- */
+function renderServices() {
+  const m = job.services.boxes;
+  const totalVol = getTotalVolume();
+  const recommendedBoxes = Math.ceil(totalVol * 4); // ~4 Kartons pro m³ Möbelvolumen Faustregel
+
+  $content.innerHTML = `
+    <div class="section-title"><h2>Zusatzleistungen</h2></div>
+    <p class="section-intro">Verpackungsmaterial, Demontage, Reinigung und Entsorgung.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:6px;">📦 Umzugskartons & Material</h4>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">
+        ${recommendedBoxes > 0 ? `Empfehlung: ca. <strong>${recommendedBoxes} Kartons</strong> für ${num(totalVol,1)} m³ Möbelvolumen.<br>` : ''}
+        Lieferung mehrere Wochen vor Umzug möglich.
+      </p>
+      ${renderMaterialRow('rent', 'Umzugskarton (Miete)', PRICING.material.karton_miete.price)}
+      ${renderMaterialRow('buy', 'Umzugskarton (Kauf)', PRICING.material.karton_kauf.price)}
+      ${renderMaterialRow('kleider', 'Kleiderbox (Miete)', PRICING.material.kleiderbox_miete.price)}
+      ${renderMaterialRow('geschirr', 'Geschirrkarton (Miete)', PRICING.material.geschirr_miete.price)}
+      ${renderMaterialRow('matratze', 'Matratzenhülle', PRICING.material.matratzenhuelle.price)}
+      ${renderMaterialRow('luftpolster', 'Luftpolsterfolie (Rolle)', PRICING.material.luftpolster.price)}
+      ${renderMaterialRow('klebeband', 'Klebeband (Rolle)', PRICING.material.klebeband.price)}
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">🔧 Demontage & Montage</h4>
+      <label class="toggle">
+        <span class="label">Demontage durch uns <small>${getDemontageCount()} Möbel benötigen Demontage</small></span>
+        <input type="checkbox" id="s-demo" ${job.services.demontage?'checked':''}>
+        <span class="switch"></span>
+      </label>
+      <label class="toggle">
+        <span class="label">Wiedermontage am Zielort <small>Inkl. Aufstellen und Ausrichten</small></span>
+        <input type="checkbox" id="s-mon" ${job.services.montage?'checked':''}>
+        <span class="switch"></span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">🧹 Endreinigung mit Abgabegarantie</h4>
+      <label class="toggle">
+        <span class="label">Endreinigung durchführen <small>Inkl. Garantie für Abnahme durch Vermieter</small></span>
+        <input type="checkbox" id="s-reinig" ${job.services.reinigung?'checked':''}>
+        <span class="switch"></span>
+      </label>
+      <div class="field" id="reinig-size-field" style="display:${job.services.reinigung?'block':'none'};">
+        <label>Wohnungsgrösse</label>
+        <select id="s-reinig-size">
+          <option value="1.5" ${job.services.reinigung_size==1.5?'selected':''}>1 – 1.5 Zimmer (CHF 590-890)</option>
+          <option value="2.5" ${job.services.reinigung_size==2.5?'selected':''}>2 – 2.5 Zimmer (CHF 690-990)</option>
+          <option value="3.5" ${job.services.reinigung_size==3.5?'selected':''}>3 – 3.5 Zimmer (CHF 790-1090)</option>
+          <option value="4.5" ${job.services.reinigung_size==4.5?'selected':''}>4 – 4.5 Zimmer (CHF 890-1390)</option>
+          <option value="5.5" ${job.services.reinigung_size==5.5?'selected':''}>5 – 5.5 Zimmer (CHF 1290-1790)</option>
+          <option value="6.5" ${job.services.reinigung_size==6.5?'selected':''}>6 – 6.5 Zimmer (CHF 1590-2290)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">🗑 Entsorgung</h4>
+      <label class="toggle">
+        <span class="label">Entsorgung von Möbeln & Hausrat <small>CHF 49.– pro Kubikmeter (pauschal)</small></span>
+        <input type="checkbox" id="s-ent" ${job.services.entsorgung?'checked':''}>
+        <span class="switch"></span>
+      </label>
+      <div class="field" id="ent-vol-field" style="display:${job.services.entsorgung?'block':'none'};">
+        <label>Geschätztes Volumen Entsorgungsgut: <strong id="ent-vol-display">${job.services.entsorgung_volume} m³</strong></label>
+        <input type="range" id="s-ent-vol" min="0" max="30" step="0.5" value="${job.services.entsorgung_volume}">
+      </div>
+    </div>
+  `;
+
+  ['rent','buy','kleider','geschirr','matratze','luftpolster','klebeband'].forEach(k => {
+    const el = document.getElementById('mat-'+k);
+    if (el) el.addEventListener('input', e => { m[k] = parseInt(e.target.value) || 0; saveState(); });
+  });
+
+  document.getElementById('s-demo').addEventListener('change', e => { job.services.demontage = e.target.checked; saveState(); });
+  document.getElementById('s-mon').addEventListener('change', e => { job.services.montage = e.target.checked; saveState(); });
+  document.getElementById('s-reinig').addEventListener('change', e => {
+    job.services.reinigung = e.target.checked;
+    document.getElementById('reinig-size-field').style.display = e.target.checked ? 'block' : 'none';
+    saveState();
+  });
+  document.getElementById('s-reinig-size').addEventListener('change', e => { job.services.reinigung_size = parseFloat(e.target.value); saveState(); });
+  document.getElementById('s-ent').addEventListener('change', e => {
+    job.services.entsorgung = e.target.checked;
+    document.getElementById('ent-vol-field').style.display = e.target.checked ? 'block' : 'none';
+    saveState();
+  });
+  document.getElementById('s-ent-vol').addEventListener('input', e => {
+    job.services.entsorgung_volume = parseFloat(e.target.value);
+    document.getElementById('ent-vol-display').textContent = job.services.entsorgung_volume + ' m³';
+    saveState();
+  });
+}
+
+function renderMaterialRow(key, label, price) {
+  const val = job.services.boxes[key] || 0;
+  return `
+    <div class="furniture-item" style="margin-bottom:6px;">
+      <div class="furniture-info">
+        <div class="furniture-name" style="font-size:14px;">${label}</div>
+        <div class="furniture-meta">${chf(price)} pro Stück</div>
+      </div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="adjustMaterial('${key}', -1)" ${val===0?'disabled':''}>−</button>
+        <input type="number" id="mat-${key}" value="${val}" min="0" style="width:60px; padding:6px; text-align:center; font-weight:600;">
+        <button class="qty-btn" onclick="adjustMaterial('${key}', 1)">+</button>
+      </div>
+    </div>
+  `;
+}
+window.adjustMaterial = (key, delta) => {
+  const cur = job.services.boxes[key] || 0;
+  job.services.boxes[key] = Math.max(0, cur + delta);
+  saveState();
+  renderServices();
+};
+
+/* ----- Step: Photos & Notes ----- */
+function renderPhotos() {
+  $content.innerHTML = `
+    <div class="section-title"><h2>Fotos & Notizen</h2></div>
+    <p class="section-intro">Dokumentiere Besonderheiten mit Fotos und ergänze Bemerkungen.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📸 Foto-Dokumentation</h4>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:10px;">
+        ${job.photos.length} ${job.photos.length === 1 ? 'Foto' : 'Fotos'} aufgenommen
+      </p>
+      <div class="photo-grid">
+        ${job.photos.map((p, idx) => `
+          <div class="photo-thumb" style="background-image:url('${p}')" data-idx="${idx}">
+            <button class="delete" data-action="del-photo" data-idx="${idx}">×</button>
+          </div>
+        `).join('')}
+        <label class="photo-add">
+          <input type="file" accept="image/*" capture="environment" id="photo-input">
+          <span style="font-size:24px;">📷</span>
+          <span>Foto hinzufügen</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📝 Allgemeine Bemerkungen</h4>
+      <div class="field">
+        <textarea id="job-notes" rows="6" placeholder="Wertvolle Stücke, Versicherungswert, Sonderwünsche, Hinweise zur Koordination ...">${escapeHtml(job.notes)}</textarea>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('photo-input').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const dataUrl = await resizeImage(file, 1200);
+    job.photos.push(dataUrl);
+    saveState();
+    renderPhotos();
+  });
+  $content.querySelectorAll('[data-action="del-photo"]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      job.photos.splice(parseInt(b.dataset.idx), 1);
+      saveState();
+      renderPhotos();
+    });
+  });
+  document.getElementById('job-notes').addEventListener('input', e => { job.notes = e.target.value; saveState(); });
+}
+
+async function resizeImage(file, maxDim) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height *= maxDim / width; width = maxDim; }
+        else if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ----- Step: Summary ----- */
+function renderSummary() {
+  const c = calcCosts();
+  $content.innerHTML = `
+    <div class="section-title"><h2>Zusammenfassung & Kalkulation</h2></div>
+    <p class="section-intro">Übersicht aller Daten und automatisch berechneter Aufwand.</p>
+
+    <div class="recommendation">
+      <h3>🎯 Einsatzplanung</h3>
+      <div class="reco-grid">
+        <div class="reco-cell">
+          <div class="num">${c.employees}</div>
+          <div class="lbl">Mitarbeiter</div>
+        </div>
+        <div class="reco-cell">
+          <div class="num">${num(c.hours,1)}</div>
+          <div class="lbl">Stunden</div>
+        </div>
+        <div class="reco-cell">
+          <div class="num">${num(c.volume,1)}</div>
+          <div class="lbl">m³</div>
+        </div>
+      </div>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:14px;">
+        <strong>Empfohlenes Fahrzeug:</strong> ${c.vehicle.type}<br>
+        <span style="color:var(--text-muted); font-size:13px;">
+          Stundensatz All-Inclusive: ${chf(c.tier.min)}–${chf(c.tier.max)}
+        </span>
+      </div>
+    </div>
+
+    <div class="summary-box">
+      <h3 style="color:white; margin-bottom:12px;">💰 Kostenübersicht</h3>
+      <div class="summary-row"><span>Umzug (${num(c.hours,1)} h × ${chf(c.hourlyRate)})</span><span>${chf(c.moveCost)}</span></div>
+      ${c.materialCost > 0 ? `<div class="summary-row"><span>Verpackungsmaterial</span><span>${chf(c.materialCost)}</span></div>` : ''}
+      ${c.cleaningCost > 0 ? `<div class="summary-row"><span>Endreinigung mit Abgabegarantie</span><span>${chf(c.cleaningCost)}</span></div>` : ''}
+      ${c.disposalCost > 0 ? `<div class="summary-row"><span>Entsorgung (${num(job.services.entsorgung_volume,1)} m³)</span><span>${chf(c.disposalCost)}</span></div>` : ''}
+      <div class="summary-row" style="opacity:0.9;"><span>Zwischensumme</span><span>${chf(c.subtotal)}</span></div>
+      <div class="summary-row" style="opacity:0.9;"><span>+ MwSt 8.1%</span><span>${chf(c.mwst)}</span></div>
+      <div class="summary-row total"><span>TOTAL</span><span>${chf(c.total)}</span></div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📋 Detaillierte Kostenaufstellung</h4>
+      <table class="cost-table">
+        <tr>
+          <td>Umzug All-Inclusive
+            <small>${c.employees} Mitarbeiter, ${c.vehicle.type}, inkl. Versicherung & Treibstoff</small>
+          </td>
+          <td>${chf(c.moveCost)}</td>
+        </tr>
+        ${renderCostRowsForMaterials()}
+        ${c.cleaningCost > 0 ? `
+        <tr>
+          <td>Endreinigung
+            <small>${job.services.reinigung_size} Zimmer · mit Abgabegarantie</small>
+          </td>
+          <td>${chf(c.cleaningCost)}</td>
+        </tr>` : ''}
+        ${c.disposalCost > 0 ? `
+        <tr>
+          <td>Entsorgung
+            <small>${num(job.services.entsorgung_volume,1)} m³ × ${chf(PRICING.disposal_per_m3)}</small>
+          </td>
+          <td>${chf(c.disposalCost)}</td>
+        </tr>` : ''}
+        <tr class="subtotal"><td>Zwischensumme exkl. MwSt</td><td>${chf(c.subtotal)}</td></tr>
+        <tr><td>MwSt 8.1%</td><td>${chf(c.mwst)}</td></tr>
+        <tr class="total"><td>TOTAL inkl. MwSt</td><td>${chf(c.total)}</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📍 Adressen & Daten</h4>
+      <div style="font-size:14px; line-height:1.7;">
+        <strong>Kunde:</strong> ${escapeHtml(job.customer.firstname)} ${escapeHtml(job.customer.lastname)}<br>
+        <strong>Datum:</strong> ${job.moveDate ? formatDate(job.moveDate) : '—'} ${job.moveTime ? `um ${job.moveTime}` : ''}<br>
+        <strong>Auszug:</strong> ${escapeHtml(job.fromAddr.street)}, ${job.fromAddr.plz} ${escapeHtml(job.fromAddr.ort)}
+          (${formatFloor(job.fromAddr.floor)}${job.fromAddr.lift ? ', mit Lift' : ', ohne Lift'})<br>
+        <strong>Einzug:</strong> ${escapeHtml(job.toAddr.street)}, ${job.toAddr.plz} ${escapeHtml(job.toAddr.ort)}
+          (${formatFloor(job.toAddr.floor)}${job.toAddr.lift ? ', mit Lift' : ', ohne Lift'})<br>
+        <strong>Distanz:</strong> ${job.distanceKm} km
+      </div>
+    </div>
+
+    <div class="info-banner">
+      ℹ️ Die Kalkulation basiert auf Erfahrungswerten und Richtpreisen. Die finale Offerte kann je nach Saison, kurzfristigen Verfügbarkeiten und tatsächlichem Aufwand variieren.
+    </div>
+  `;
+}
+
+function renderCostRowsForMaterials() {
+  const rows = [];
+  const m = job.services.boxes;
+  const mat = PRICING.material;
+  const mappings = [
+    ['rent', mat.karton_miete],
+    ['buy', mat.karton_kauf],
+    ['kleider', mat.kleiderbox_miete],
+    ['geschirr', mat.geschirr_miete],
+    ['matratze', mat.matratzenhuelle],
+    ['luftpolster', mat.luftpolster],
+    ['klebeband', mat.klebeband],
+  ];
+  for (const [key, info] of mappings) {
+    if (m[key] > 0) {
+      rows.push(`<tr>
+        <td>${info.name}<small>${m[key]} × ${chf(info.price)}</small></td>
+        <td>${chf(m[key] * info.price)}</td>
+      </tr>`);
+    }
+  }
+  return rows.join('');
+}
+
+/* ----- Step: Offer & Signature ----- */
+function renderOffer() {
+  $content.innerHTML = `
+    <div class="section-title"><h2>Offerte & Unterschrift</h2></div>
+    <p class="section-intro">Generiere die Offerte als PDF, sammle die Unterschrift und versende per E-Mail.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📄 PDF-Offerte</h4>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">
+        Erstelle eine vollständige Offerte mit Kalkulation, Möbelliste und Konditionen.
+      </p>
+      <button class="btn btn-primary btn-block" id="btn-pdf">📥 Offerte als PDF generieren</button>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">✍ Unterschrift Kunde (optional)</h4>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:10px;">
+        Der Kunde kann hier die Bestandesaufnahme bestätigen.
+      </p>
+      <canvas class="sig-pad" id="sig-pad" width="800" height="200"></canvas>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" id="sig-clear">Löschen</button>
+        <button class="btn btn-primary btn-sm" id="sig-save" style="flex:1;">Unterschrift speichern</button>
+      </div>
+      ${job.signature ? '<p style="margin-top:10px; color:var(--success); font-size:13px;">✓ Unterschrift gespeichert</p>' : ''}
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:12px;">📧 Per E-Mail versenden</h4>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">
+        Sendet die Offerte direkt an den Kunden (öffnet Mail-Programm).
+      </p>
+      <div class="field">
+        <label>Empfänger</label>
+        <input type="email" id="mail-to" value="${escapeAttr(job.customer.email)}">
+      </div>
+      <button class="btn btn-accent btn-block" id="btn-mail">📤 Offerte per E-Mail senden</button>
+    </div>
+    
+    ${job.sentAt ? `<div class="info-banner">✅ Offerte wurde am ${formatDate(job.sentAt)} versendet.</div>` : ''}
+  `;
+
+  // Signature pad
+  setupSignaturePad();
+
+  document.getElementById('btn-pdf').addEventListener('click', generatePDF);
+  document.getElementById('btn-mail').addEventListener('click', sendEmail);
+}
+
+function setupSignaturePad() {
+  const canvas = document.getElementById('sig-pad');
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  let lastPoint = null;
+
+  // Resize for retina
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#0d4f5c';
+
+  // Restore previous if exists
+  if (job.signature) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+    img.src = job.signature;
+  }
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    if (e.touches) return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function start(e) { e.preventDefault(); drawing = true; lastPoint = getPos(e); }
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.x, lastPoint.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastPoint = p;
+  }
+  function end() { drawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', end);
+
+  document.getElementById('sig-clear').addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    job.signature = null;
+    saveState();
+  });
+  document.getElementById('sig-save').addEventListener('click', () => {
+    job.signature = canvas.toDataURL('image/png');
+    saveState();
+    toast('✓ Unterschrift gespeichert');
+    renderOffer();
+  });
+}
+
+/* ---------- 7. PDF GENERATION ---------- */
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const c = calcCosts();
+  const pageW = 210;
+  const margin = 18;
+  let y = 20;
+
+  // Header
+  doc.setFillColor(13, 79, 92);
+  doc.rect(0, 0, pageW, 30, 'F');
+  doc.setTextColor(255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('UMZUGSOFFERTE', margin, 15);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Erstellt am ${new Date().toLocaleDateString('de-CH')}`, margin, 23);
+  doc.text(`Offerte Nr. ${job.id.replace('job_','').slice(-8)}`, pageW - margin, 23, { align: 'right' });
+  
+  y = 42;
+  doc.setTextColor(0);
+
+  // Customer
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text('Kunde', margin, y); y += 5;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  doc.text(`${job.customer.firstname} ${job.customer.lastname}`, margin, y); y += 4;
+  if (job.customer.phone) { doc.text(job.customer.phone, margin, y); y += 4; }
+  if (job.customer.email) { doc.text(job.customer.email, margin, y); y += 4; }
+  y += 4;
+
+  // Move details
+  doc.setFont('helvetica', 'bold');
+  doc.text('Umzugsdetails', margin, y); y += 5;
+  doc.setFont('helvetica', 'normal');
+  if (job.moveDate) { doc.text(`Datum: ${formatDate(job.moveDate)} um ${job.moveTime}`, margin, y); y += 4; }
+  doc.text(`Auszug: ${job.fromAddr.street}, ${job.fromAddr.plz} ${job.fromAddr.ort} (${formatFloor(job.fromAddr.floor)}, ${job.fromAddr.lift ? 'mit Lift' : 'ohne Lift'})`, margin, y, { maxWidth: pageW - 2*margin });
+  y += 4;
+  doc.text(`Einzug: ${job.toAddr.street}, ${job.toAddr.plz} ${job.toAddr.ort} (${formatFloor(job.toAddr.floor)}, ${job.toAddr.lift ? 'mit Lift' : 'ohne Lift'})`, margin, y, { maxWidth: pageW - 2*margin });
+  y += 4;
+  doc.text(`Distanz: ${job.distanceKm} km`, margin, y);
+  y += 8;
+
+  // Resource recommendation box
+  doc.setFillColor(245, 242, 236);
+  doc.rect(margin, y, pageW - 2*margin, 26, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+  doc.text('Einsatzplanung', margin + 4, y + 6);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`• ${c.employees} Mitarbeiter`, margin + 4, y + 12);
+  doc.text(`• ${num(c.hours,1)} Stunden`, margin + 4, y + 17);
+  doc.text(`• ${c.vehicle.type}`, margin + 4, y + 22);
+  doc.text(`Volumen: ${num(c.volume,2)} m³`, pageW - margin - 4, y + 12, { align: 'right' });
+  doc.text(`Gewicht: ${num(getTotalWeight(),0)} kg`, pageW - margin - 4, y + 17, { align: 'right' });
+  doc.text(`Möbel: ${getTotalItemCount()} Stk`, pageW - margin - 4, y + 22, { align: 'right' });
+  y += 32;
+
+  // Cost breakdown
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+  doc.text('Kostenaufstellung', margin, y); y += 7;
+  doc.setFontSize(9);
+
+  const costRows = [
+    ['Umzug All-Inclusive', `${num(c.hours,1)} h × ${chf(c.hourlyRate)}`, c.moveCost],
+  ];
+  const m = job.services.boxes;
+  const mat = PRICING.material;
+  const mapping = [
+    ['rent', mat.karton_miete],
+    ['buy', mat.karton_kauf],
+    ['kleider', mat.kleiderbox_miete],
+    ['geschirr', mat.geschirr_miete],
+    ['matratze', mat.matratzenhuelle],
+    ['luftpolster', mat.luftpolster],
+    ['klebeband', mat.klebeband],
+  ];
+  for (const [key, info] of mapping) {
+    if (m[key] > 0) costRows.push([info.name, `${m[key]} × ${chf(info.price)}`, m[key] * info.price]);
+  }
+  if (c.cleaningCost > 0) costRows.push(['Endreinigung', `${job.services.reinigung_size} Zi (m. Abgabegarantie)`, c.cleaningCost]);
+  if (c.disposalCost > 0) costRows.push(['Entsorgung', `${num(job.services.entsorgung_volume,1)} m³ × ${chf(PRICING.disposal_per_m3)}`, c.disposalCost]);
+
+  doc.setFillColor(245, 242, 236);
+  doc.rect(margin, y - 4, pageW - 2*margin, 6, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Position', margin + 2, y);
+  doc.text('Detail', 100, y);
+  doc.text('Betrag', pageW - margin - 2, y, { align: 'right' });
+  y += 5;
+
+  doc.setFont('helvetica', 'normal');
+  for (const [label, detail, amount] of costRows) {
+    doc.text(label, margin + 2, y, { maxWidth: 70 });
+    doc.text(detail, 100, y, { maxWidth: 50 });
+    doc.text(chf(amount), pageW - margin - 2, y, { align: 'right' });
+    y += 5;
+  }
+
+  y += 2;
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageW - margin, y); y += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.text('Zwischensumme', margin + 2, y);
+  doc.text(chf(c.subtotal), pageW - margin - 2, y, { align: 'right' });
+  y += 5;
+  doc.text('MwSt 8.1%', margin + 2, y);
+  doc.text(chf(c.mwst), pageW - margin - 2, y, { align: 'right' });
+  y += 6;
+
+  doc.setFillColor(13, 79, 92);
+  doc.setTextColor(255);
+  doc.rect(margin, y - 4, pageW - 2*margin, 8, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('TOTAL inkl. MwSt', margin + 2, y + 1);
+  doc.text(chf(c.total), pageW - margin - 2, y + 1, { align: 'right' });
+  y += 12;
+  doc.setTextColor(0);
+
+  // Furniture list (new page)
+  doc.addPage();
+  y = 20;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+  doc.text('Möbelliste / Bestandesaufnahme', margin, y); y += 8;
+
+  doc.setFontSize(9);
+  doc.setFillColor(245, 242, 236);
+  doc.rect(margin, y - 4, pageW - 2*margin, 6, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Möbelstück', margin + 2, y);
+  doc.text('Stk', 130, y);
+  doc.text('m³', 150, y);
+  doc.text('kg', 170, y);
+  doc.text('', pageW - margin - 2, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'normal');
+  const allFurn = getAllFurniture();
+  for (const room of ROOMS) {
+    const itemsInRoom = [];
+    for (const id in job.items) {
+      const f = allFurn.find(x => x.id === id);
+      if (f && f.room === room) itemsInRoom.push({ ...f, qty: job.items[id] });
+    }
+    const customsInRoom = job.customItems.filter(ci => ci.room === room);
+    if (itemsInRoom.length === 0 && customsInRoom.length === 0) continue;
+
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(13, 79, 92);
+    doc.text(room, margin, y);
+    doc.setTextColor(0);
+    y += 4;
+    doc.setFont('helvetica', 'normal');
+    for (const f of itemsInRoom) {
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.text(f.name, margin + 4, y, { maxWidth: 120 });
+      doc.text(String(f.qty), 130, y);
+      doc.text(num(f.volume * f.qty, 2), 150, y);
+      doc.text(num(f.weight * f.qty, 0), 170, y);
+      y += 4;
+    }
+    for (const ci of customsInRoom) {
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.text(ci.name + ' (manuell)', margin + 4, y, { maxWidth: 120 });
+      doc.text(String(ci.qty), 130, y);
+      doc.text(num(ci.volume * ci.qty, 2), 150, y);
+      doc.text(num((ci.weight||0) * ci.qty, 0), 170, y);
+      y += 4;
+    }
+    y += 2;
+  }
+
+  y += 4;
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageW - margin, y); y += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Gesamttotal', margin + 4, y);
+  doc.text(String(getTotalItemCount()), 130, y);
+  doc.text(num(getTotalVolume(), 2), 150, y);
+  doc.text(num(getTotalWeight(), 0), 170, y);
+  y += 10;
+
+  // Notes
+  if (job.notes) {
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text('Bemerkungen', margin, y); y += 5;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    const lines = doc.splitTextToSize(job.notes, pageW - 2*margin);
+    doc.text(lines, margin, y); y += lines.length * 4 + 4;
+  }
+
+  // Signature
+  if (job.signature) {
+    if (y > 230) { doc.addPage(); y = 20; }
+    y += 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text('Unterschrift Kunde', margin, y); y += 4;
+    doc.addImage(job.signature, 'PNG', margin, y, 70, 25);
+    y += 26;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    doc.setLineWidth(0.2);
+    doc.line(margin, y, margin + 70, y);
+    doc.text(`${job.customer.firstname} ${job.customer.lastname}`, margin, y + 4);
+    doc.text(new Date().toLocaleDateString('de-CH'), margin, y + 8);
+  }
+
+  // Footer auf jeder Seite
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(
+      `Offerte unverbindlich, gültig 30 Tage · Preise inkl. Mwst 8.1% · Seite ${i} / ${pageCount}`,
+      pageW / 2, 290, { align: 'center' }
+    );
+  }
+
+  const filename = `Umzugsofferte_${job.customer.lastname || 'Kunde'}_${(job.moveDate || '').replace(/-/g,'')}.pdf`;
+  doc.save(filename);
+  toast('📥 PDF heruntergeladen');
+}
+
+function sendEmail() {
+  const to = document.getElementById('mail-to').value || job.customer.email;
+  if (!to) { toast('Bitte E-Mail-Adresse eingeben'); return; }
+  const c = calcCosts();
+  const subject = `Umzugsofferte ${job.moveDate ? formatDate(job.moveDate) : ''}`;
+  const body = `Guten Tag ${job.customer.firstname} ${job.customer.lastname}
+
+Vielen Dank für Ihr Vertrauen. Anbei finden Sie die Eckdaten Ihrer unverbindlichen Umzugsofferte:
+
+Umzugsdatum: ${job.moveDate ? formatDate(job.moveDate) : 'Noch festzulegen'}
+Auszug: ${job.fromAddr.street}, ${job.fromAddr.plz} ${job.fromAddr.ort}
+Einzug: ${job.toAddr.street}, ${job.toAddr.plz} ${job.toAddr.ort}
+
+Volumen: ${num(c.volume, 1)} m³
+Mitarbeiter: ${c.employees}
+Geschätzte Dauer: ${num(c.hours, 1)} Stunden
+Fahrzeug: ${c.vehicle.type}
+
+TOTAL inkl. MwSt: ${chf(c.total)}
+
+Die detaillierte Offerte mit Möbelliste senden wir Ihnen als PDF separat zu.
+
+Bei Fragen stehen wir Ihnen gerne zur Verfügung.
+
+Freundliche Grüsse`;
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+  job.sentAt = new Date().toISOString();
+  saveDraft();
+  saveState();
+  toast('📤 E-Mail-Programm geöffnet');
+}
+
+/* ---------- 8. NAVIGATION ---------- */
+$btnBack.addEventListener('click', () => {
+  if (currentStep === 1) {
+    if (confirm('Aufnahme als Entwurf speichern und zurück zum Start?')) {
+      saveDraft();
+      currentStep = 0;
+      saveState();
+      renderApp();
+    }
+  } else {
+    currentStep--;
+    saveState();
+    renderApp();
+    document.querySelector('.content').scrollTop = 0;
+  }
+});
+$btnNext.addEventListener('click', () => {
+  if (!validateStep()) return;
+  if (currentStep === STEPS.length - 1) {
+    saveDraft();
+    toast('✓ Bestandesaufnahme abgeschlossen');
+    setTimeout(() => {
+      job = emptyJob();
+      currentStep = 0;
+      saveState();
+      renderApp();
+    }, 1000);
+    return;
+  }
+  currentStep++;
+  saveState();
+  renderApp();
+  document.querySelector('.content').scrollTop = 0;
+});
+
+function validateStep() {
+  const step = STEPS[currentStep].id;
+  if (step === 'customer') {
+    if (!job.customer.firstname || !job.customer.lastname) {
+      toast('Bitte Vor- und Nachname eingeben'); return false;
+    }
+    if (!job.customer.phone || !job.customer.email) {
+      toast('Bitte Telefon und E-Mail eingeben'); return false;
+    }
+  }
+  if (step === 'addr_from' || step === 'addr_to') {
+    const addr = step === 'addr_from' ? job.fromAddr : job.toAddr;
+    if (!addr.street || !addr.plz || !addr.ort) {
+      toast('Bitte vollständige Adresse eingeben'); return false;
+    }
+  }
+  if (step === 'inventory') {
+    if (getTotalVolume() === 0) {
+      toast('Bitte mindestens ein Möbelstück erfassen'); return false;
+    }
+  }
+  saveDraft();
+  return true;
+}
+
+/* ---------- 9. UTILS ---------- */
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString('de-CH', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function formatRelative(iso) {
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'gerade eben';
+  if (diff < 3600) return Math.floor(diff/60) + ' Min';
+  if (diff < 86400) return Math.floor(diff/3600) + ' h';
+  if (diff < 604800) return Math.floor(diff/86400) + ' Tagen';
+  return formatDate(iso);
+}
+function formatFloor(f) {
+  if (f === -1) return 'UG';
+  if (f === 0) return 'EG';
+  return f + '. Stock';
+}
+
+function showModal(html) {
+  const host = document.getElementById('modal-host');
+  host.innerHTML = `
+    <div class="modal-backdrop" id="modal-backdrop">
+      <div class="modal" id="modal" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        ${html}
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+  document.querySelectorAll('[data-action="modal-close"]').forEach(b => b.addEventListener('click', closeModal));
+}
+function closeModal() {
+  document.getElementById('modal-host').innerHTML = '';
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ---------- 10. INIT ---------- */
+loadCustomFurniture();
+loadState();
+renderApp();
+
+// Block accidental zoom-in on inputs (iOS)
+document.addEventListener('gesturestart', e => e.preventDefault());
+</script>
+</body>
+</html>
